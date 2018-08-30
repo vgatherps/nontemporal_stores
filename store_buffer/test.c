@@ -65,11 +65,12 @@ uint64_t rdtscp() {
     // thanks https://stackoverflow.com/questions/9887839/how-to-count-clock-cycles-with-rdtsc-in-gcc-x86
     // since I'm lazy
     unsigned hi, lo;
-    __asm__ __volatile__ ("rdtscp" : "=a"(lo), "=d"(hi) :: "memory", "rcx");
+    __asm volatile ("rdtscp" : "=a"(lo), "=d"(hi) :: "memory", "rcx");
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
-uint64_t run_timer_loop() {
+__attribute__ ((noinline))
+uint64_t run_timer_loop(void) {
     for (int i = 0; i < LINES; i++) {
 #ifndef LINES_IN_CACHE
         clflush(&large_buffer[i]);
@@ -115,12 +116,18 @@ uint64_t run_timer_loop() {
     return diff;
 }
 
+// never will the compiler inline this!
+volatile uint64_t (*loop_var)(void);
+
 int main()
 {
-    uint64_t n_loop = 100;
+    uint64_t n_loop = 10000;
     uint64_t total = 0;
+    cpuid();
+    rdtscp();
+    loop_var = (void *)&run_timer_loop;
     for (int i = 0; i < n_loop; i++) {
-        total += run_timer_loop();
+        total += loop_var();
     }
     printf("%d\n", (int)(total / n_loop));
     return 0;
