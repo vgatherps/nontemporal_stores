@@ -11,9 +11,7 @@ plt.plot('s', 'nontemporal', data=my_csv)
 plt.plot('s', 'normal', data=my_csv)
 
 plt.xlabel('Number of cache lines written')
-plt.ylabel('Number of cycles to reload variable')
-
-plt.title('Cycles to re-load variable vs number of cache lines stored')
+plt.ylabel('Number of cycles to reload list')
 
 plt.legend()
 

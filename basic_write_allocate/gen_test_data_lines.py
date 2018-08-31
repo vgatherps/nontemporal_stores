@@ -17,7 +17,7 @@ vals = []
 
 print "s,time,timent"
 
-for s in range(0, 16348+64, 64):
+for s in range(0, 6200+64, 64):
     print("{},{},{}".format(s, run_a_test(s, False), run_a_test(s, True)))
 
 

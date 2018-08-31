@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <emmintrin.h>
 
@@ -16,7 +17,7 @@ typedef struct {
 cache_line barrier1[32];
 
 __attribute__ ((aligned(64)))
-cache_line dummy_line[32]; // many to circle through conflicts
+cache_line dummy_lines[64];
 
 cache_line barrier2[32];
 
@@ -26,6 +27,28 @@ cache_line large_buffer[1000000/32];
 __attribute__ ((aligned(64)))
 cache_line large_nontemporal_buffer[1000000/32];
 
+volatile int dump_to_me;
+
+void shuffle() {
+    for (int i = 0; i < 64; i++) {
+        dummy_lines[i].int_val = i;
+    }
+    for (int i = 0; i < 64; i++) {
+        int left = 64 - i;
+        int swap = rand() % left;
+        cache_line temp = dummy_lines[i];
+        dummy_lines[i] = dummy_lines[swap];
+        dummy_lines[swap] = temp;
+    }
+}
+
+void iterate() {
+    int next = 0;
+    for (int i = 0; i < 32; i++) {
+        __asm volatile("" : "+r" (next) :: "memory");
+        next = dummy_lines[next].int_val;
+    }
+}
 
 void force_load(void *a) {
     __asm volatile("mov (%0), %%edi"
@@ -71,11 +94,9 @@ uint64_t rdtscp() {
 #endif
 
 __attribute__ ((noinline))
-uint64_t run_timer_loop(int ind) {
+uint64_t run_timer_loop(void) {
 
-    ind %= 32;
-
-    force_load(&dummy_line[ind]);
+    shuffle();
 
     for (int i = 0; i < STORES; i++) {
         force_store(&large_buffer[i]);
@@ -86,7 +107,7 @@ uint64_t run_timer_loop(int ind) {
     }
 
     uint64_t start = rdtscp();
-    force_load(&dummy_line[ind]);
+    iterate();
     volatile uint64_t end = rdtscp();
 
     mfence();
@@ -95,15 +116,16 @@ uint64_t run_timer_loop(int ind) {
 }
 
 // never will the compiler inline this!
-volatile uint64_t (*loop_var)(int);
+volatile uint64_t (*loop_var)(void);
 
 int main()
 {
+    srand(rdtscp());
     uint64_t n_loop = 10000;
     uint64_t total = 0;
     loop_var = (void *)&run_timer_loop;
     for (int i = 0; i < n_loop; i++) {
-        total += loop_var(i);
+        total += loop_var();
     }
     printf("%d\n", (int)(total / n_loop));
     return 0;
