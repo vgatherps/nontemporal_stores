@@ -27,6 +27,9 @@ cache_line large_buffer[1024];
 __attribute__ ((aligned(64)))
 cache_line large_nontemporal_buffer[1024];
 
+__attribute__ ((aligned(64)))
+cache_line large_prestore_buffer[1024];
+
 void force_load(void *a) {
     __asm volatile("mov (%0), %%edi"
                    :
@@ -40,7 +43,11 @@ void force_store(cache_line *a) {
 
 void force_nt_store(cache_line *a) {
     __m128i zeros = {0, 0}; // chosen to use zeroing idiom;
-    __asm volatile("movntdq %0, (%1)"
+    // do 4 stores to hit whole cache line
+    __asm volatile("movntdq %0, (%1)\n\t"
+                   "movntdq %0, 16(%1)\n\t"
+                   "movntdq %0, 32(%1)\n\t"
+                   "movntdq %0, 48(%1)"
                    :
                    : "x" (zeros), "r" (&a->vec_val)
                    : "memory");
@@ -53,12 +60,12 @@ void clflush(void *a) {
                    : "memory");
 }
 
-void cpuid() {
-   __asm volatile("cpuid" ::: "memory");
-}
-
 void sfence() {
    __asm volatile("sfence" ::: "memory");
+}
+
+void mfence() {
+   __asm volatile("mfence" ::: "memory");
 }
 
 uint64_t rdtscp() {
@@ -69,8 +76,33 @@ uint64_t rdtscp() {
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
+#ifndef STORES_BEFORE
+#define STORES_BEFORE 0
+#endif
+
+#ifndef NT_STORES_BEFORE
+#define NT_STORES_BEFORE 0
+#endif
+
+#ifndef NT_LINES
+#define NT_LINES 0
+#endif
+
+#ifndef LINES
+#define LINES 0
+#endif
+
 __attribute__ ((noinline))
 uint64_t run_timer_loop(void) {
+
+    for (int i = 0; i < STORES_BEFORE; i++) {
+        force_store(&large_prestore_buffer[i]);
+    }
+
+    for (int i = 0; i < NT_STORES_BEFORE; i++) {
+        force_nt_store(&large_prestore_buffer[i]);
+    }
+
     for (int i = 0; i < LINES; i++) {
 #ifndef LINES_IN_CACHE
         clflush(&large_buffer[i]);
@@ -87,8 +119,8 @@ uint64_t run_timer_loop(void) {
 #endif
     }
 
-    // cpuid is a serializing instruction, stronger than say mfence. Defined in the full code
-    cpuid();
+    // mfence is a serializing instruction, stronger than say mfence. Defined in the full code
+    mfence();
 
     uint64_t start = rdtscp();
 
@@ -104,6 +136,10 @@ uint64_t run_timer_loop(void) {
         force_store(&large_buffer[i]);
     }
 
+#ifdef FENCE_END
+    mfence();
+#endif
+
     // while rdtscp 'waits' for all preceding instructions to complete,
     // it does not wait for stores to complete as in be visible to
     // all other cores or the L3, but for the instruction to be retired
@@ -111,7 +147,7 @@ uint64_t run_timer_loop(void) {
     // on our stalls
     volatile uint64_t end = rdtscp();
 
-    cpuid();
+    mfence();
     uint64_t diff = end > start ? end - start : 0;
     return diff;
 }
@@ -121,10 +157,8 @@ volatile uint64_t (*loop_var)(void);
 
 int main()
 {
-    uint64_t n_loop = 10000;
+    uint64_t n_loop = 1000;
     uint64_t total = 0;
-    cpuid();
-    rdtscp();
     loop_var = (void *)&run_timer_loop;
     for (int i = 0; i < n_loop; i++) {
         total += loop_var();
