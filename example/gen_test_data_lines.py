@@ -12,7 +12,7 @@ def run_a_test(num, do_nt):
 
     return float(subprocess.check_output('../bin/example'))
 
-ids_to_time = [10, 100, 1000, 10000, 100000, 1000000, 10000000]
+ids_to_time = [10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000]
 
 print "s,time,timent"
 

@@ -90,7 +90,6 @@ int main()
     }
     for (size_t i = 0; i < (1024*1024*200)/sizeof(message); i++) {
         message_buffer.push_back({});
-        break;
     }
     volatile uint64_t total = 0;
     message m;
