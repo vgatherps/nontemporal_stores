@@ -13,6 +13,5 @@ ax.invert_yaxis()
 
 plt.xlabel("Number of cache lines written normally")
 plt.ylabel("Number of cache lines written nontemporally")
-plt.title("Cycles spent to run nontemporal stores and then temporal stores with sfence between")
 
 plt.savefig(sys.argv[1] + '.png')

@@ -38,7 +38,15 @@ void force_load(void *a) {
 }
 
 void force_store(cache_line *a) {
-    *(volatile int *)a = 0;
+    __m128i zeros = {0, 0}; // chosen to use zeroing idiom;
+    // do 4 stores to hit whole cache line
+    __asm volatile("movdqa %0, (%1)\n\t"
+                   "movdqa %0, 16(%1)\n\t"
+                   "movdqa %0, 32(%1)\n\t"
+                   "movdqa %0, 48(%1)"
+                   :
+                   : "x" (zeros), "r" (&a->vec_val)
+                   : "memory");
 }
 
 void force_nt_store(cache_line *a) {

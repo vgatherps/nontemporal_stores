@@ -3,7 +3,7 @@ import subprocess
 import numpy as np
 
 def run_a_test(lines, nt_lines, lines_cache, nt_lines_cache):
-    defs = "-DLINES={} -DNT_LINES={}".format(lines, nt_lines)
+    defs = " -DLINES={} -DNT_LINES={}".format(lines, nt_lines)
     if lines_cache:
         defs += " -DLINES_IN_CACHE "
     if nt_lines_cache:
@@ -17,8 +17,8 @@ vals = []
 
 print "s,nt,time"
 
-for nt in range(0, 105, 5):
-    for s in range(0, 105, 5):
+for nt in range(0, 52, 2):
+    for s in range(0, 52, 2):
         print("{},{},{}".format(s, nt, run_a_test(s, nt, 1, 0)))
 
 
