@@ -7,14 +7,6 @@
 // accidentally seeing the wrong instruction and having some
 // side effect
 
-#ifndef NT_LINES
-#define NT_LINES 1
-#endif
-
-#ifndef LINES
-#define LINES 1
-#endif
-
 typedef struct {
     __m128i vec_val;
     int int_val;
@@ -30,14 +22,6 @@ cache_line large_buffer[1024];
 
 void force_nt_store(cache_line *a) {
 
-    // special case for 8 bytes
-#if BYTES == 8
-    __asm volatile("pxor %%mm0, %%mm0\n\t"
-                   "movntq %%mm0, (%0)\n\t"
-                   :
-                   : "r" (&a->vec_val)
-                   : "memory");
-#else
     __m128i zeros = {0, 0};
     __asm volatile("movntdq %0, (%1)\n\t"
 #if BYTES > 16
@@ -52,7 +36,6 @@ void force_nt_store(cache_line *a) {
                    :
                    : "x" (zeros), "r" (&a->vec_val)
                    : "memory");
-#endif
 }
 
 void mfence() {
