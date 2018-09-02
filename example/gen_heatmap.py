@@ -14,6 +14,6 @@ ax.invert_yaxis()
 
 plt.xlabel("Number of elements in lookup map")
 plt.ylabel("Size of storage buffer in MB")
-plt.title("Difference in ms between normal and nontemporal stores")
+plt.title("Percent difference between normal and nontemporal stores")
 
 plt.savefig(sys.argv[1] + '.png')
