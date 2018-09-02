@@ -82,13 +82,17 @@ uint64_t process_message(const message &m) {
 #define N_IDS 100000
 #endif
 
+#ifndef BUF
+#define BUF 1
+#endif
+
 int main()
 {
     srand(time(NULL));
     for (size_t i = 0; i < N_IDS; i++) {
         lookup_map[i] = i;
     }
-    for (size_t i = 0; i < (1024*1024*200)/sizeof(message); i++) {
+    for (size_t i = 0; i < (1024*1024*BUF)/sizeof(message); i++) {
         message_buffer.push_back({});
     }
     volatile uint64_t total = 0;
