@@ -11,9 +11,9 @@ def run_a_test(num):
 
     return float(subprocess.check_output('../bin/write_combine'))
 
-x_bytes = [16, 32, 48, 64]
+x_bytes = [8, 16, 32, 48, 64]
 y_times = [run_a_test(b) for b in x_bytes]
-x_names = [str(x) + 'bytes' for x in x_bytes]
+x_names = [str(x) + ' bytes' for x in x_bytes]
 
 plt.bar(x_names, y_times)
 plt.ylabel('Number of cycles to write array')
