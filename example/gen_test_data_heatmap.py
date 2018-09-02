@@ -10,12 +10,12 @@ def run_a_test(num, buf, do_nt):
     cmd_make = 'rm -f ../bin/example && USER_DEFINES="{}" make'.format(defs)
     subprocess.check_output(cmd_make, shell=True)
 
-    return float(subprocess.check_output('../bin/example'))
+    return subprocess.check_output('../bin/example').strip('\r\n')
 
 ids_to_time = [1000, 10000, 100000, 1000000]
 buf_mb = [1, 10, 20, 30, 50, 100, 200]
 
-print "s,b,time,timent"
+print "s,b,time,cycle,timent,cyclent"
 
 for n in ids_to_time:
     for b in buf_mb:

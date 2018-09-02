@@ -57,6 +57,14 @@ void cpy_message(const message &from, message &to) {
     }
 }
 
+uint64_t rdtscp() {
+    // thanks https://stackoverflow.com/questions/9887839/how-to-count-clock-cycles-with-rdtsc-in-gcc-x86
+    // since I'm lazy
+    unsigned hi, lo;
+    __asm volatile ("rdtscp" : "=a"(lo), "=d"(hi) :: "memory", "rcx");
+    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
 void mfence() {
    __asm volatile("mfence" ::: "memory");
 }
@@ -75,7 +83,9 @@ uint64_t process_message(const message &m) {
 
     cpy_message(m, cpy_to);
    
-    return lookup_map[m.id];
+    uint64_t start = rdtscp();
+    volatile uint64_t val = lookup_map[m.id];
+    return rdtscp() - start;
 }
 
 #ifndef N_IDS
@@ -95,16 +105,17 @@ int main()
     for (size_t i = 0; i < (1024*1024*BUF)/sizeof(message); i++) {
         message_buffer.push_back({});
     }
-    volatile uint64_t total = 0;
+    uint64_t total = 0;
     message m;
     auto start = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < 100000; i++) {
+    uint64_t rounds = 100000;
+    for (size_t i = 0; i < rounds; i++) {
         m.id = rand() % N_IDS;
         total += process_message(m);
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto spent = std::chrono::duration_cast<std::chrono::milliseconds>(end -start).count();
-    std::cout << spent << std::endl;
+    std::cout << spent << "," << total/rounds << std::endl;
     __asm volatile ("" : "+m" (total) :: "memory");
     return 0;
 }

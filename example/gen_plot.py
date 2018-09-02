@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 
 my_csv = pd.read_csv(sys.argv[1], header=0)
+print my_csv
 my_csv['nontemporal'] = my_csv['timent']
 my_csv['normal'] = my_csv['time']
 
